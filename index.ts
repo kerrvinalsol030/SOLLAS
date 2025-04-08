@@ -2,7 +2,7 @@ import express from 'express'
 import mongoose from 'mongoose'
 import cors from 'cors'
 import { MONGO_URI, PORT } from './config/config'
-import { AdminRoutes, PropertyOwnerRoutes, VerifierRoute } from './routes'
+import { AdminRoutes, PropertyOwnerRoutes, PropertySearchRoute, VerifierRoute } from './routes'
 import path from 'path'
 
 
@@ -27,6 +27,7 @@ mongoose.connect(MONGO_URI).then(() =>
 app.use('/admin', AdminRoutes)
 app.use('/propertyOwner', PropertyOwnerRoutes)
 app.use('/verifier', VerifierRoute)
+app.use(PropertySearchRoute)
 
 
 

@@ -3,7 +3,14 @@ import mongoose, { Schema, Document } from "mongoose";
 interface PropertyDoc extends Document {
     propertyName: string;
     description: string;
-    address: string;
+    address: {
+        houseNo: string,
+        street: string,
+        barangay: string,
+        municipality: string;
+        province: string,
+        postalCode: string
+    };
     propertyType: string; //House, Apartment, BedSpace in Object ID
     headCount: number,
     images: [string];
@@ -21,7 +28,16 @@ interface PropertyDoc extends Document {
 const PropertySchema = new Schema({
     propertyName: { type: String, require: true },
     description: { type: String },
-    address: { type: String, require: true },
+    address: {
+        type: {
+            houseNo: String,
+            street: String,
+            barangay: String,
+            municipality: String,
+            province: String,
+            postalCode: String
+        }, require: true
+    },
     propertyType: { type: mongoose.SchemaTypes.ObjectId, ref: 'propertytypes', required: true },
     headCount: { type: Number, require: true },
     images: { type: [String] },

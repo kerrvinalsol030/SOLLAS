@@ -5,8 +5,7 @@ export class CreatePropertyInputs {
     propertyName: string;
     @Length(5, 50)
     description: string;
-    @Length(5, 50)
-    address: string;
+    address: propertyAddress;
     @Length(5, 50)
     propertyType: string; //House, Apartment, BedSpace
     headCount: number;
@@ -20,5 +19,14 @@ export class CreatePropertyInputs {
     price: number;
     lat: number;
     lng: number;
+}
+
+export interface propertyAddress {
+    houseNo: string,
+    street: string,
+    barangay: string,
+    municipality: string;
+    province: string,
+    postalCode: string
 }
 

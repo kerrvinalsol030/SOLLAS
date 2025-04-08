@@ -55,6 +55,7 @@ export const GetPropertyOwnerProfile = async (req: Request, res: Response, next:
 export const CreateProperty = async (req: Request, res: Response, next: NextFunction) => {
     const user = req.user
     if (user) {
+        req.body = { ...req.body, address: JSON.parse(req.body.address) }
         const propertyInputs = plainToClass(CreatePropertyInputs, req.body)
         const inputErrors = await validate(propertyInputs, { validationError: { target: true } })
         if (inputErrors.length > 0) {
@@ -62,15 +63,17 @@ export const CreateProperty = async (req: Request, res: Response, next: NextFunc
             return
         }
 
-        const { propertyName, description, address, propertyType, headCount, images, amenities, safetyItems, secuirity, price, lat, lng } = propertyInputs
+        const { propertyName, description, address, propertyType, headCount, amenities, safetyItems, secuirity, price, lat, lng } = propertyInputs
 
+        const files = req.files as [Express.Multer.File]
+        const mImages = files.map(i => i.filename)
         const newProperty = await Property.create({
             propertyName: propertyName,
             description: description,
             address: address,
             propertyType: propertyType, //House, Apartment, BedSpace
             headCount: headCount,
-            images: [],
+            images: mImages,
             amenities: amenities,
             safetyItems: safetyItems,
             secuirity: secuirity,
@@ -119,6 +122,7 @@ export const PropertyOwnerUpdateProperty = async (req: Request, res: Response, n
         if (record) {
             const isProperty = record.properties.find(id => id.toString() === propertyId)
             if (isProperty) {
+                req.body = { ...req.body, address: JSON.parse(req.body.address) }
                 const propertyInputs = plainToClass(CreatePropertyInputs, req.body)
                 const inputErrors = await validate(propertyInputs, { validationError: { target: true } })
 
