@@ -29,6 +29,10 @@ const SearchProperty = async (propertySearchType: searchType, value: string) => 
 
 export const ViewListProperty = async (req: Request, res: Response, next: NextFunction) => {
     //view listings sorted: ratings
+
+    if (req.user) {
+        console.log(req.user)
+    }
     const properties = await SearchProperty('All', req.params.key)
     res.status(200).json(properties)
     return
