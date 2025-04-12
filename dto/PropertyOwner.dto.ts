@@ -1,4 +1,4 @@
-import { IsEmail, Length } from 'class-validator'
+import { IsEmail, IsEmpty, IsNumber, Length } from 'class-validator'
 
 
 export class PropertyOwnerCreateInputs {
@@ -31,4 +31,13 @@ export class PropertyOwnerLoginInputs {
 
     @Length(5, 30)
     password: string;
+}
+
+export class PropertyOwnerReviewBoarderInputs {
+    review: string;
+    @IsNumber()
+    ratings: number;
+    boarderId: string;
+    propertyId: string;
+    propertyTransactionId: string
 }

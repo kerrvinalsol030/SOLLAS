@@ -1,5 +1,5 @@
 import express from 'express'
-import { ApproveRequestMeeting, CreateProperty, DisapproveRequestMeeting, GetPropertyOwnerProfile, PropertyOwnerGetProperties, PropertyOwnerSignin, PropertyOwnerUpdateProperty, UpdateMeetingRequestDetail, ViewActiveMeetings, ViewAllPropertyRecords, ViewPendingRequestMeetings } from '../controllers'
+import { ApproveRequestMeeting, CreateProperty, DisapproveRequestMeeting, GetPropertyOwnerProfile, PropertyOwnerGetProperties, PropertyOwnerPropertyReviews, PropertyOwnerReviewBoarder, PropertyOwnerSignin, PropertyOwnerUpdateProperty, UpdateMeetingRequestDetail, ViewActiveMeetings, ViewAllPropertyRecords, ViewPendingRequestMeetings } from '../controllers'
 import { Authenticate } from '../middlewares/Authentication'
 import { images } from '../utility/Multer.Utility'
 
@@ -20,6 +20,8 @@ router.patch('/transaction/:transactionId/disapprove', DisapproveRequestMeeting)
 router.get('/ViewActiveMeetings', ViewActiveMeetings)
 router.get('/propertyTransactions', ViewAllPropertyRecords)
 router.patch('/updateMeetingDetails/:transactionId', UpdateMeetingRequestDetail)
+router.post('/review-boarder/:boarderId', PropertyOwnerReviewBoarder)
+router.get('/property-reviews/:propertyId', PropertyOwnerPropertyReviews)
 
 
 export { router as PropertyOwnerRoutes }
