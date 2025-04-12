@@ -4,6 +4,7 @@ import { BoarderCreateInputs, BoarderLoginInputs, BoarderPayload } from '../dto'
 import { validate } from 'class-validator'
 import { EncryptPassword, GenerateSalt, GenerateSignature, ValidatePassword } from '../utility'
 import { Boarder } from '../models'
+import { PropertyTransaction } from '../models/T_PropertyTransaction'
 
 export const BoarderSignup = async (req: Request, res: Response, next: NextFunction) => {
     const createInputs = plainToClass(BoarderCreateInputs, req.body)
@@ -111,3 +112,44 @@ export const BoarderReviews = async (req: Request, res: Response, next: NextFunc
     res.status(400).json({ message: 'invalid credential' })
     return
 }
+
+export const SetUpPropertyViewing = async (req: Request, res: Response, next: NextFunction) => {
+    const user = req.user
+    const propertyId = req.params.propertyId
+    const { meetingDate } = req.body
+    let isExists = false
+
+    if (user) {
+        const records = await PropertyTransaction.find({ boarderId: user._id, propertyId })
+        if (records) {
+            records.map(record => {
+                if (new Date(record.meetingDate).toISOString() == new Date(meetingDate).toISOString()) {
+                    isExists = true
+                }
+            })
+        }
+        if (isExists) {
+            res.status(400).json({ message: "Record alread exists!." })
+            return
+        }
+
+        const propertyTransaction = await PropertyTransaction.create({
+            propertyId: propertyId,
+            boarderId: user._id,
+            meetingDate: meetingDate,
+            isBoarderShown: undefined,
+            isOccupied: undefined,
+            remarks: '',
+            isActive: undefined
+        })
+        if (propertyTransaction) {
+            res.status(200).json(propertyTransaction)
+            return
+        }
+    }
+    res.status(400).json({ message: 'Please sign in' })
+    return
+}  
+
+
+//REVIEW PROPERTY

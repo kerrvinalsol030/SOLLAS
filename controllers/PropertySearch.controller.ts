@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import { Property } from '../models'
+import { AuthPayload } from '../dto'
 
 
 //native enum
@@ -50,3 +51,26 @@ export const ViewListPropertyByPostalCode = async (req: Request, res: Response, 
     res.status(200).json(properties)
     return
 }
+
+const UpdateVisitRecord = (user: AuthPayload) => {
+    return
+}
+
+export const PropertySearchById = async (req: Request, res: Response, next: NextFunction) => {
+    const user = req.user
+    if (user) {
+        //save user info to VISIT Model
+        UpdateVisitRecord(user)
+        const propertyId = req.params.propertyId
+        const property = await Property.findById(propertyId)
+        if (property) {
+            res.status(200).json(property)
+            return
+        } else {
+            res.status(400).json({ message: 'PropertyId not found' })
+            return
+        }
+    }
+    res.status(400).json({ message: 'Please sign in!' })
+    return
+}   

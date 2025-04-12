@@ -1,11 +1,12 @@
 import express from 'express'
-import { GetAllPropertyTypes, PropertyOwnerSignin, PropertyOwnerSignUp, VerifierSignup, ViewNotVerifiedProperties, ViewVerifiedProperties } from '../controllers'
+import { GetAllPropertyTypes, GetPropertyOwner, PropertyOwnerSignin, PropertyOwnerSignUp, VerifierSignup, ViewNotVerifiedProperties, ViewVerifiedProperties } from '../controllers'
 
 
 const router = express.Router()
 
 router.post('/propertyOwner', PropertyOwnerSignUp)
 router.post('/propertyOwner/signin', PropertyOwnerSignin)
+router.get('/propertyOwners', GetPropertyOwner)
 
 router.get('/propertyTypes', GetAllPropertyTypes)
 router.post('/verifier', VerifierSignup)

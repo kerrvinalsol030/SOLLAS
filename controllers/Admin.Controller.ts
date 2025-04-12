@@ -55,6 +55,13 @@ export const PropertyOwnerSignUp = async (req: Request, res: Response, next: Nex
 
 }
 
+export const GetPropertyOwner = async (req: Request, res: Response, next: NextFunction) => {
+    const record = await PropertyOwner.find()
+    if (record)
+        res.status(200).json(record)
+    return
+}
+
 //GET ALL PROPERTIES
 export const GetAllPropertyTypes = async (req: Request, res: Response, next: NextFunction) => {
     const POTypes = await PropertyType.find()

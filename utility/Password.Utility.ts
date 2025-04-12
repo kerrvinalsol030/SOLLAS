@@ -11,7 +11,7 @@ export const EncryptPassword = async (password: string, salt: string) => await b
 
 export const ValidatePassword = async (enteredPassword: string, recordPassword: string, salt: string) => await EncryptPassword(enteredPassword, salt) === recordPassword
 
-export const GenerateSignature = (payload: AuthPayload) => jwt.sign(payload, APP_SECRET, { expiresIn: '1h' })
+export const GenerateSignature = (payload: AuthPayload) => jwt.sign(payload, APP_SECRET, { expiresIn: '1d' })
 
 export const ValidateSignature = async (req: Request) => {
     const signature = req.get('Authorization')

@@ -1,4 +1,4 @@
-import express from 'express'
+import express, { NextFunction, Request, Response } from 'express'
 import mongoose from 'mongoose'
 import cors from 'cors'
 import { MONGO_URI, PORT } from './config/config'
@@ -29,6 +29,12 @@ app.use('/propertyOwner', PropertyOwnerRoutes)
 app.use('/verifier', VerifierRoute)
 app.use('/boarder', BoarderRoutes)
 app.use(PropertySearchRoute)
+app.use((error: any, req: Request, res: Response, next: NextFunction) => {
+    const statusCode = error.statusCode || 500
+    const data = error.data || error.message
+    res.status(statusCode).json(data)
+    return
+})
 
 
 

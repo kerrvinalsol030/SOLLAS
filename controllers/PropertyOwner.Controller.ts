@@ -5,59 +5,66 @@ import { PropertyOwnerLoginInputs } from '../dto'
 import { Property, PropertyOwner } from '../models'
 import { ValidatePassword, GenerateSignature } from '../utility'
 import { CreatePropertyInputs } from '../dto/Property.dto'
+import { PropertyTransaction, PropertyTransactionDoc } from '../models/T_PropertyTransaction'
+import { NotFoundError, AuthorizeError, ValidationError, APIError } from '../utility/Error/ErrorTypes'
 
 //sign in
 export const PropertyOwnerSignin = async (req: Request, res: Response, next: NextFunction) => {
-    const signinInputs = plainToClass(PropertyOwnerLoginInputs, req.body)
 
-    const inputErrors = await validate(signinInputs, { validationError: { target: true } })
+    try {
+        const signinInputs = plainToClass(PropertyOwnerLoginInputs, req.body)
 
-    if (inputErrors.length > 0) {
-        res.status(400).json(inputErrors)
-        return
-    }
+        const inputErrors = await validate(signinInputs, { validationError: { target: true } })
 
-    const { email, password } = signinInputs
-
-    const record = await PropertyOwner.findOne({ email })
-
-    if (record !== null) {
-        const isPasswordValid = await ValidatePassword(password, record.password, record.salt)
-        if (isPasswordValid) {
-            const signature = GenerateSignature({ _id: record.id, email: record.email })
-            res.status(200).json({ record, signature })
+        if (inputErrors.length > 0) {
+            res.status(400).json(inputErrors)
             return
         }
-        res.status(400).json({ message: 'invalid credentials' })
+
+        const { email, password } = signinInputs
+        const record = await PropertyOwner.findOne({ email })
+        if (!record) throw new NotFoundError('Property Owner not found.')
+
+        const isPasswordValid = await ValidatePassword(password, record.password, record.salt)
+        if (!isPasswordValid) throw new ValidationError('Invalid credentials.')
+
+        const signature = GenerateSignature({ _id: record.id, email: record.email })
+        res.status(200).json({ record, signature })
         return
+
+    } catch (error) {
+        next(error)
     }
-    res.status(400).json({ message: "Account not exists" })
-    return
 }
 
 //GET PROPERTY OWNER PROFILE
 
 export const GetPropertyOwnerProfile = async (req: Request, res: Response, next: NextFunction) => {
-    const user = req.user
-    if (user) {
-        const record = await PropertyOwner.findById(user._id)
-        if (record !== null) {
-            res.status(200).json(record)
-            return
-        }
+    try {
+        if (!req.user) throw new AuthorizeError('Not authorized. Please sign in.')
+
+        const record = await PropertyOwner.findById(req.user._id)
+        if (!record) throw new NotFoundError('Property owner record not found.')
+
+        res.status(200).json(record)
+        return
+
+    } catch (error) {
+        next(error)
     }
-    res.status(400).json('No record found')
-    return
 }
 
 // CRUD PROPERTY
 
 export const CreateProperty = async (req: Request, res: Response, next: NextFunction) => {
-    const user = req.user
-    if (user) {
+
+    try {
+        if (!req.user) throw new AuthorizeError('Not authorized. Please sign in')
+
         req.body = { ...req.body, address: JSON.parse(req.body.address) }
         const propertyInputs = plainToClass(CreatePropertyInputs, req.body)
         const inputErrors = await validate(propertyInputs, { validationError: { target: true } })
+
         if (inputErrors.length > 0) {
             res.status(400).json({ message: 'invalid data', errors: inputErrors })
             return
@@ -84,83 +91,205 @@ export const CreateProperty = async (req: Request, res: Response, next: NextFunc
             lat: lat,
             lng: lng,
         })
-        console.log(newProperty)
-        if (newProperty) {
-            const profile = await PropertyOwner.findById(user._id)
-            if (profile) {
-                profile.properties.push(newProperty)
-                await profile.save()
-            }
-            res.status(200).json({ property: newProperty })
-            return
-        }
 
+        if (!newProperty) throw new APIError('Error saving property.')
+        const profile = await PropertyOwner.findById(req.user._id)
+        if (!profile) throw new NotFoundError('Error finding the property owner. failed to update property owner.')
+        profile.properties.push(newProperty)
+        await profile.save()
+
+        res.status(200).json({ property: newProperty })
+        return
+
+
+    } catch (error) {
+        next(error)
     }
-    res.status(400).json({ message: "Please sign in" })
-    return
 }
 
 
 export const PropertyOwnerGetProperties = async (req: Request, res: Response, next: NextFunction) => {
-    const user = req.user
-    if (user) {
-        const profile = await PropertyOwner.findById(user._id).populate({ path: 'properties', populate: { path: 'propertyType', model: 'propertytypes' } }).exec()
-        if (profile)
-            res.status(200).json(profile.properties)
+
+    try {
+        if (!req.user) throw new AuthorizeError('Not authorized. please sign in.')
+        const profile = await PropertyOwner.findById(req.user._id).populate({ path: 'properties', populate: { path: 'propertyType', model: 'propertytypes' } }).exec()
+        if (!profile) throw new NotFoundError('Property owner not found.')
+        if (profile.properties.length <= 0) throw new NotFoundError('No properties found')
+        res.status(200).json(profile.properties)
         return
+    } catch (error) {
+        next(error)
     }
-    res.status(400).json({ message: "Please sign in" })
-    return
+
 }
 
 
 export const PropertyOwnerUpdateProperty = async (req: Request, res: Response, next: NextFunction) => {
-    const user = req.user
-    const propertyId = req.params.propertyId
-    if (user) {
-        let record = await PropertyOwner.findById(user._id)
-        if (record) {
-            const isProperty = record.properties.find(id => id.toString() === propertyId)
-            if (isProperty) {
-                req.body = { ...req.body, address: JSON.parse(req.body.address) }
-                const propertyInputs = plainToClass(CreatePropertyInputs, req.body)
-                const inputErrors = await validate(propertyInputs, { validationError: { target: true } })
 
-                if (inputErrors.length > 0) {
-                    res.status(400).json(inputErrors)
-                    return
-                }
-                const property = await Property.findById(propertyId)
-                if (property) {
-                    const { propertyName, description, address, propertyType, headCount, images, amenities, safetyItems, secuirity, price, lat, lng } = propertyInputs
-                    const files = req.files as [Express.Multer.File]
-                    const mImages = files.map((file: Express.Multer.File) => file.filename)
-                    property.propertyName = propertyName;
-                    property.description = description;
-                    property.address = address;
-                    property.propertyType = propertyType;
-                    property.headCount = headCount;
-                    property.images = mImages as [string];
-                    property.amenities = amenities;
-                    property.safetyItems = safetyItems;
-                    property.secuirity = secuirity;
-                    property.price = price;
-                    property.lat = lat;
-                    property.lng = lng;
+    try {
+        if (!req.user) throw new NotFoundError('Not authorized. please sign in')
 
-                    const result = await property.save()
-                    if (result) {
-                        res.status(200).json(result)
-                        return
-                    }
-                }
-            } else {
-                res.status(400).json({ message: 'Not Authorized!' })
-                return
-            }
+        const propertyId = req.params.propertyId
+        let record = await PropertyOwner.findById(req.user._id)
+        if (!record) throw new NotFoundError('Property owner not found')
+
+        const isProperty = record.properties.find(id => id.toString() === propertyId)
+        if (!isProperty) throw new NotFoundError('Property not found in owner property lists.')
+
+        req.body = { ...req.body, address: JSON.parse(req.body.address) }
+        const propertyInputs = plainToClass(CreatePropertyInputs, req.body)
+        const inputErrors = await validate(propertyInputs, { validationError: { target: true } })
+
+        if (inputErrors.length > 0) {
+            res.status(400).json(inputErrors)
+            return
         }
+
+        const property = await Property.findById(propertyId)
+        if (!property) throw new NotFoundError('Property record not found')
+
+        const { propertyName, description, address, propertyType, headCount, amenities, safetyItems, secuirity, price, lat, lng } = propertyInputs
+        const files = req.files as [Express.Multer.File]
+        const mImages = files.map((file: Express.Multer.File) => file.filename)
+
+        property.propertyName = propertyName;
+        property.description = description;
+        property.address = address;
+        property.propertyType = propertyType;
+        property.headCount = headCount;
+        property.images = mImages as [string];
+        property.amenities = amenities;
+        property.safetyItems = safetyItems;
+        property.secuirity = secuirity;
+        property.price = price;
+        property.lat = lat;
+        property.lng = lng;
+
+        const result = await property.save()
+        if (!result) throw new APIError('Error updating record.')
+
+        res.status(200).json(result)
+        return
+
+    } catch (error) {
+        next(error)
     }
-    res.status(400).json('Please sign in')
+}
+
+const ViewMeetings = async (req: Request, isActive: boolean | undefined, next: NextFunction): Promise<PropertyTransactionDoc[] | undefined> => {
+
+    try {
+        if (!req.user) throw new AuthorizeError('Not authorized! Please sign in.')
+
+        const propertyOwner = await PropertyOwner.findById(req.user._id)
+
+        if (!propertyOwner) throw new NotFoundError('property owner not found')
+
+        const propertyTransactions = await PropertyTransaction.find({ isActive: isActive }).where('propertyId').in(propertyOwner.properties).exec()
+
+        if (propertyTransactions.length <= 0) throw new NotFoundError('No meetings found')
+
+        return propertyTransactions
+
+    } catch (error) {
+        next(error)
+    }
+}
+
+//view pending request meetings
+export const ViewPendingRequestMeetings = async (req: Request, res: Response, next: NextFunction) => {
+    const pendingRequest = await ViewMeetings(req, undefined, next)
+    res.status(200).json(pendingRequest)
+}
+
+//view active meeting
+export const ViewActiveMeetings = async (req: Request, res: Response, next: NextFunction) => {
+    const activeMeetings = await ViewMeetings(req, true, next)
+    res.status(200).json(activeMeetings)
+}
+
+//approve or not approve request meetings
+const updateMeetingRequest = async (transactionId: string, isApprove: boolean, remarks: string = '', next: NextFunction) => {
+
+    try {
+        const transaction = await PropertyTransaction.findById(transactionId)
+        let record: PropertyTransactionDoc
+
+        if (!transaction) throw new NotFoundError('Record not found')
+
+        if (transaction.isActive !== undefined) throw new ValidationError('Transaction record cannot be changed')
+
+        transaction.isActive = isApprove
+        transaction.remarks = remarks
+
+        record = await transaction.save()
+
+        return record
+
+    } catch (error) {
+        next(error)
+    }
+
+}
+export const ApproveRequestMeeting = async (req: Request, res: Response, next: NextFunction) => {
+
+    const transaction = await updateMeetingRequest(req.params.transactionId, true, undefined, next)
+
+    res.status(200).json(transaction)
     return
 }
 
+export const DisapproveRequestMeeting = async (req: Request, res: Response, next: NextFunction) => {
+    const { remarks } = req.body
+    const transaction = await updateMeetingRequest(req.params.transactionId, false, remarks, next)
+
+    res.status(200).json(transaction)
+    return
+}
+
+
+
+//update request meetings record
+export const UpdateMeetingRequestDetail = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        if (!req.user) throw new AuthorizeError('not authorized!, please sign in.')
+        const transactionId = req.params.transactionId
+        const { isBoarderShown, isOccupied, remarks } = req.body
+        const propertyTransaction = await PropertyTransaction.findById(transactionId)
+
+        if (!propertyTransaction) throw new NotFoundError('Transaction not found')
+
+
+        if (propertyTransaction.isActive != true) throw new ValidationError('Record cannot be changed!')
+
+        propertyTransaction.isBoarderShown = isBoarderShown
+        propertyTransaction.isOccupied = isOccupied
+        propertyTransaction.remarks = remarks
+        propertyTransaction.isActive = false
+        const transaction = await propertyTransaction.save()
+        res.status(200).json(transaction)
+        return
+    } catch (error) {
+        next(error)
+    }
+}
+
+export const ViewAllPropertyRecords = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        if (!req.user) throw new AuthorizeError("Not Authorized! please sign in!")
+        const propertyOwner = await PropertyOwner.findById(req.user._id)
+
+        if (!propertyOwner) throw new NotFoundError("Property Owner not found")
+
+        const propertyTransactions = await PropertyTransaction.find().where('propertyId').in(propertyOwner.properties).exec()
+
+        if (propertyTransactions.length <= 0) throw new NotFoundError("No Transactions Found")
+
+        res.status(200).json(propertyTransactions)
+        return
+    } catch (error) {
+        next(error)
+    }
+}
+
+//Review Boarder
