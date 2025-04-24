@@ -2,9 +2,9 @@ import { plainToClass } from 'class-transformer'
 import { validate } from 'class-validator'
 import { Request, Response, NextFunction } from 'express'
 import { PropertyOwnerLoginInputs, PropertyOwnerReviewBoarderInputs } from '../dto'
-import { Boarder, BoarderReview, Property, PropertyOwner, PropertyReview } from '../models'
+import { Boarder, BoarderReview, Property, PropertyOwner, PropertyReview, Visit } from '../models'
 import { ValidatePassword, GenerateSignature } from '../utility'
-import { CreatePropertyInputs } from '../dto/Property.dto'
+import { CreatePropertyInputs, PropertyGetVisits } from '../dto/Property.dto'
 import { PropertyTransaction, PropertyTransactionDoc } from '../models/T_PropertyTransaction'
 import { NotFoundError, AuthorizeError, ValidationError, APIError } from '../utility/Error/ErrorTypes'
 
@@ -292,6 +292,15 @@ export const ViewAllPropertyRecords = async (req: Request, res: Response, next: 
     }
 }
 
+const computeBoarderRatings = async (boarderId: string): Promise<number> => {
+    const BoarderRatings = await BoarderReview.find({ boarderId })
+    let totalRatings = 0
+    console.log(BoarderRatings)
+    BoarderRatings.forEach(record => totalRatings = totalRatings + record.ratings) // total all ratings
+    console.log(totalRatings + ' - ' + BoarderRatings.length)
+    return totalRatings = (totalRatings) / BoarderRatings.length
+}
+
 //Review Boarder
 export const PropertyOwnerReviewBoarder = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -328,8 +337,12 @@ export const PropertyOwnerReviewBoarder = async (req: Request, res: Response, ne
         })
 
         if (!newReview) throw new APIError('Failed to save review.')
+        // Update Property Ratings
+        const rating = await computeBoarderRatings(boarderId)
+        result[1].ratings = rating
+        await result[1].save()
 
-        res.status(200).json({ review: newReview })
+        res.status(200).json({ review: newReview, boarder: result[1] })
         return
 
 
@@ -343,6 +356,23 @@ export const PropertyOwnerPropertyReviews = async (req: Request, res: Response, 
         if (!req.params.propertyId) throw new ValidationError('Invalid property ID')
         const reviews = await PropertyReview.find({ propertyId: req.params.propertyId })
         res.status(200).json(reviews)
+    } catch (error) {
+        next(error)
+    }
+}
+
+
+//VISITS
+export const GetPropertyVisits = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { propertyIds } = <PropertyGetVisits>req.body
+
+        if (propertyIds.length <= 0) throw new ValidationError('Invalid property IDS')
+        const VisitRecord = await Visit.find({ propertyId: { $in: propertyIds } })
+
+        if (!VisitRecord) throw new NotFoundError('No record found')
+
+        res.status(200).json(VisitRecord)
     } catch (error) {
         next(error)
     }

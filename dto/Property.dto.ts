@@ -30,3 +30,6 @@ export interface propertyAddress {
     postalCode: string
 }
 
+export interface PropertyGetVisits {
+    propertyIds: string[]
+}

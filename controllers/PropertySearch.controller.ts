@@ -18,11 +18,11 @@ type searchType = keyof typeof propertySearchType
 const SearchProperty = async (propertySearchType: searchType, value: string) => {
     let properties;
     if (propertySearchType === 'Municipality') {
-        properties = await Property.find({ "address.municipality": value })
+        properties = await Property.find({ "address.municipality": value }).sort({ ratings: -1 })
     } else if (propertySearchType === 'PostalCode') {
-        properties = await Property.find({ "address.postalCode": value })
+        properties = await Property.find({ "address.postalCode": value }).sort({ ratings: -1 })
     } else {
-        properties = await Property.find()
+        properties = await Property.find().sort({ ratings: -1 })
     }
 
     return properties
@@ -31,10 +31,6 @@ const SearchProperty = async (propertySearchType: searchType, value: string) => 
 
 export const ViewListProperty = async (req: Request, res: Response, next: NextFunction) => {
     //view listings sorted: ratings
-
-    if (req.user) {
-        console.log(req.user)
-    }
     const properties = await SearchProperty('All', req.params.key)
     res.status(200).json(properties)
     return
@@ -69,15 +65,13 @@ const UpdateVisitRecord = async (user: AuthPayload, propertyId: string) => {
             visitRecord.visitors = [...visitRecord.visitors, { boarderId: user._id, count: 1 }]
         }
         visitRecord.totalVisits += 1
-        const newRecord = await visitRecord.save()
-        console.log(newRecord)
+        await visitRecord.save()
     } else {
         const newRecord = await Visit.create({
             propertyId: propertyId,
             visitors: [{ boarderId: user._id, count: 1 }],
             totalVisits: 1
         })
-        console.log(newRecord)
     }
 }
 
