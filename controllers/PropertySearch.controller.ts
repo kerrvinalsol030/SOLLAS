@@ -6,8 +6,8 @@ import { AuthorizeError, NotFoundError } from '../utility/Error/ErrorTypes'
 
 //native enum
 const propertySearchType = {
-    Municipality: "Municipality 123",
-    PostalCode: "PostalCode 123",
+    Municipality: "Municipality",
+    PostalCode: "PostalCode",
     All: "All"
 } as const
 

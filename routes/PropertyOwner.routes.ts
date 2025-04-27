@@ -14,6 +14,7 @@ router.get('/', GetPropertyOwnerProfile)
 router.post('/property', images, CreateProperty)
 router.get('/property', PropertyOwnerGetProperties)
 router.put('/property/:propertyId', images, PropertyOwnerUpdateProperty)
+//TODO : List Property verified and not verified
 router.get('/PendingRequestMeetings', ViewPendingRequestMeetings)
 router.patch('/transaction/:transactionId/approve', ApproveRequestMeeting)
 router.patch('/transaction/:transactionId/disapprove', DisapproveRequestMeeting)

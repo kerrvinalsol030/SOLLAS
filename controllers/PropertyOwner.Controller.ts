@@ -295,9 +295,7 @@ export const ViewAllPropertyRecords = async (req: Request, res: Response, next: 
 const computeBoarderRatings = async (boarderId: string): Promise<number> => {
     const BoarderRatings = await BoarderReview.find({ boarderId })
     let totalRatings = 0
-    console.log(BoarderRatings)
     BoarderRatings.forEach(record => totalRatings = totalRatings + record.ratings) // total all ratings
-    console.log(totalRatings + ' - ' + BoarderRatings.length)
     return totalRatings = (totalRatings) / BoarderRatings.length
 }
 
